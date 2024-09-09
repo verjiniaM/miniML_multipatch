@@ -4,6 +4,6 @@ h5py
 pandas
 numpy
 scipy
-tensorflow
+tensorflow==2.13.0
 pyabf
 PyQt5
