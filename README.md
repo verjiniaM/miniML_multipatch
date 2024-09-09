@@ -2,15 +2,26 @@
 
 # miniML: A deep learning framework for synaptic event detection
 
-[![minimal Python version](https://img.shields.io/badge/Python%E2%89%A5-3.9-grey.svg?style=for-the-badge&logo=python&labelColor=3670A0&logoColor=white)](https://www.anaconda.com/download/)
+[![minimal Python version](https://img.shields.io/badge/Python-3.9_3.10-grey.svg?style=for-the-badge&logo=python&labelColor=3670A0&logoColor=white)](https://www.anaconda.com/download/)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-%23FF6F00.svg?style=for-the-badge&logo=TensorFlow&logoColor=white)](https://www.tensorflow.org)
 [![DOI](https://img.shields.io/badge/DOI-10.1101/2023.11.02.565316-grey.svg?style=for-the-badge&logo=doi&labelColor=green&logoColor=white)](https://www.biorxiv.org/content/10.1101/2023.11.02.565316)
 
 
 This repository contains the code described in the following publication:  
 O'Neill P.S., Baccino-Calace M., Rupprecht P., Friedrich R.W., Müller, M., and Delvendahl, I. 
-(2023) Deep learning-based synaptic event detection. _bioRxiv_ ([doi:10.1101/2023.11.02.565316](https://www.biorxiv.org/content/10.1101/2023.11.02.565316))  
+(2024) Deep learning-based synaptic event detection. _eLife_ ([doi:10.7554/eLife.98485.1](https://doi.org/10.7554/eLife.98485.1))  
 
+
+------------
+### Update 03.07.2024:
+
+
+Part of the downstream processing as well as parts of the plot functionality was changed. If you have been using miniML things should work as per usual, with the following exceptions:
+- Plot functionalities now are in a separate class and need to be generated slightly different. Please refer to the section "Inspect the results" in the tutorial.ipynb file for details.
+- The quantitative results for amplitude etc. may differ slightly from the previous version. Reason is the way we process the data as well as the filtering (see below). Previously, event location, event peak etc. were determined in resampled data (if win_size was not 600) and then mapped to the raw data. Now we work with the raw data in this step. Therefore, the exact values may differ.
+- The convolve_win parameter may need to be adjusted. Filtering was previously done in resampled data, so you may need to adjust the filter settings. You can visually check for good settings using the plot_gradient_search() method. See also section "Inspect the results" in the tutorial.ipynb file for details.
+- The save_to_csv() method has been updated to be consistent with the other file formats. It previously took a path as argument, now it takes a filename.
+------------
 
 ### 🧠 ABOUT
 
@@ -26,6 +37,8 @@ To use miniML, clone the GitHub Repositiory and install the requirements. The Py
 `pip install -r requirements.txt`
 
 miniML can be run on a GPU to speed model inference. Either CUDA or tensorflow-metal are required for GPU use. Installation instructions for these requirements may depend on the specific hardware and OS and can be found online.
+
+**Update June 2024:** The release of TensorFlow 2.16 and Keras 3 introduced breaking changes that raise an error when loading models trained with earlier TensorFlow versions. To avoid this, it is recommended to use TensorFlow 2.14 or 2.15.
 
 
 ### ⏱ RUNNING MINIML
