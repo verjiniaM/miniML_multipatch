@@ -11,6 +11,7 @@ from scipy.optimize import curve_fit
 from scipy.ndimage import maximum_filter1d
 from miniML_functions import (get_event_peak, get_event_baseline, get_event_onset, get_event_risetime, 
                               get_event_halfdecay_time, get_event_charge)
+import pyabf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -325,6 +326,69 @@ class MiniTrace():
 
         return cls(data=abf_file.data[channel] * scaling, sampling_interval=1/abf_file.sampleRate, 
                     y_unit=data_unit, filename=os.path.split(filepath)[-1])
+
+    @classmethod
+    def from_axon_file_MP(cls, filepath: str, channel: int=0, scaling: float=1.0, unit: str='', sweeps_delete: list = [],
+    first_point = 0, last_point = 0) -> MiniTrace:
+        ''' Loads data from an AXON .abf file.
+
+        Parameters
+        ----------
+        filepath: string
+            Path of a .abf file.
+        channel: int, default: 0
+            The recording channel to load
+        scaling: float, default=1.0
+            Scaling factor applied to the data.
+        unit: str, default=''
+            Data unit, to be set when using scaling factor.
+        sweeps_delete: list, default = []
+            The sweeps to be removed from the data.
+        first_point, last_point: int, default = 0
+            First and last datapoint to be deleted from each sweep.
+            Used for example to cut out a test pulse
+        Returns
+        -------
+        MiniTrace
+            An initialized MiniTrace object.
+        Raises
+        ------
+        Exception
+            If the file is not a valid .abf file.
+        IndexError
+            When the selected channel does not exist in the file.
+        '''
+        if not os.path.splitext(filepath)[-1].lower() == '.abf':
+            raise Exception('Incompatible file type. Method only loads .abf files.')
+
+        abf_file = pyabf.ABF(filepath)
+
+        if len(abf_file.channelList) < 8:
+            if '_Ipatch' in abf_file.adcNames:
+                abf_file.adcNames[abf_file.adcNames.index('_Ipatch')] = 'Ch1'
+            if 'IN0' in abf_file.adcNames:
+                abf_file.adcNames[abf_file.adcNames.index('IN0')] = 'Ch1'
+            if 'IN 0' in abf_file.adcNames:
+                abf_file.adcNames[abf_file.adcNames.index('IN0')] = 'Ch1'
+            channel_name = 'Ch' + str(channel)
+            channel = abf_file.channelList[abf_file.adcNames.index(channel_name)]
+        else:
+            channel = channel - 1
+
+        abf_file.setSweep(0)
+        swp_len = len(abf_file.sweepY)
+        data_long = abf_file.data[channel] * scaling
+        swp_num = int(len(data_long)/swp_len)
+
+        reshape_data = data_long.reshape(swp_num, swp_len)
+        reshape_data = np.delete(reshape_data, sweeps_delete, 0)
+        reshape_data = np.delete(reshape_data, list(range(first_point, last_point)), 1)
+        data_long = reshape_data.flatten()
+
+        data_unit = unit if unit is not None else abf_file.adcUnits[channel]
+
+        return cls(data=data_long, sampling_interval=1/abf_file.sampleRate, 
+                    y_unit=data_unit, filename=os.path.split(filepath)[-1][:-4] + '_ch' + str(channel))
 
 
     def plot_trace(self) -> None:
