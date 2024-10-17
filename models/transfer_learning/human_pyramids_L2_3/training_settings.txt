@@ -1,0 +1,10 @@
+training_size: 0.8
+testing_size: None
+learn_rate: 2e-08
+epsilon: 1e-08
+patience: 15
+epochs: 100
+batch_size: 32
+dropout: 0.5
+training_data: /kaggle/input/complete-training-dataset-oct-2024/complete_training_dataset.h5
+base_model: ../input/miniml-training-data/GC_lstm_model.h5
