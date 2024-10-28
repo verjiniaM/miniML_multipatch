@@ -347,7 +347,7 @@ class MiniTrace():
             if 'IN0' in abf_file.adcNames:
                 abf_file.adcNames[abf_file.adcNames.index('IN0')] = 'Ch1'
             if 'IN 0' in abf_file.adcNames:
-                abf_file.adcNames[abf_file.adcNames.index('IN0')] = 'Ch1'
+                abf_file.adcNames[abf_file.adcNames.index('IN 0')] = 'Ch1'
             channel_name = 'Ch' + str(channel)
             channel = abf_file.channelList[abf_file.adcNames.index(channel_name)]
         else:
