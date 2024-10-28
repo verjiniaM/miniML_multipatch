@@ -6,5 +6,5 @@ patience: 15
 epochs: 100
 batch_size: 32
 dropout: 0.5
-training_data: /kaggle/input/complete-training-dataset-oct-2024/complete_training_dataset.h5
-base_model: ../input/miniml-training-data/GC_lstm_model.h5
+training_data: /alzheimer/verjinia/data/training_data/complete_training_dataset.h5
+base_model: ./models/GC_lstm_model.h5

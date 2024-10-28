@@ -65,8 +65,8 @@ epsilon = 1e-8
 patience = 15
 epochs = 100
 batch_size = 32
-training_data = '/kaggle/input/complete-training-dataset-oct-2024/complete_training_dataset.h5'
-base_model_name = "../input/miniml-training-data/GC_lstm_model.h5"
+training_data = '/alzheimer/verjinia/data/training_data/complete_training_dataset.h5'
+base_model_name = './models/GC_lstm_model.h5'
 
 
 settings = {}
@@ -106,8 +106,8 @@ x = resample(x, 600, axis = 1)
 axs[1].plot(x[1])
 axs[1].set_title('after resampling and inverting\n')
 plt.tight_layout()
-plt.save('/Users/verjim/miniML_multipatch/out_model_training/resampling_and_inverting.png')
-
+plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/resampling_and_inverting.png')
+plt.close()
 
 # Scale and split the data.
 scaled_data = minmax_scale(x, feature_range=(0,1), axis=1) #scales all data to be (0,1) 
@@ -131,14 +131,14 @@ x_train, x_test, y_train, y_test = train_test_split(scaled_data, merged_y, train
 old_model = tf.keras.models.load_model(base_model_name, compile=compile)
 
 # save weights from GC model
-old_model.save_weights('/Users/verjim/miniML_multipatch/out_model_training/gc_weights')
+old_model.save_weights('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/gc_weights')
 
 # re-create model with different input shape
 new_model = build_model(x_train, dropout)
 new_model.summary()
 
 # Load old model weights into new model
-new_model.load_weights('/Users/verjim/miniML_multipatch/out_model_training/gc_weights')
+new_model.load_weights('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/gc_weights')
 
 # Freeze / unfreeze layers that should / should not be trained
 for ind, layer in enumerate(new_model.layers):
@@ -162,7 +162,7 @@ new_model.compile(optimizer=Adam(learning_rate=learn_rate, epsilon=epsilon, amsg
 new_model.summary()
 
 # Train chosen layers of new model        
-checkpoint_filepath = '/kaggle/working/model_{epoch:02d}_{val_Accuracy:.03f}.h5'
+checkpoint_filepath = '/alzheimer/verjinia/miniML_multipatch/model_training/out_model_training/model_{epoch:02d}_{val_Accuracy:.03f}.h5'
 
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath,
@@ -194,7 +194,6 @@ print(f'score on train: {new_model.evaluate(x_train,y_train)[1]}')
 end = time.time()
 print(end-start)
 
-os.makedirs('/kaggle/working/plots/')
 acc = history.history['Accuracy']
 val_acc = history.history['val_Accuracy']
 epochs = range(1, len(acc) + 1)
@@ -204,9 +203,8 @@ plt.title('Training and validation accuracy')
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.legend()
-plt.savefig('/Users/verjim/miniML_multipatch/out_model_training/acuracy.png')
-plt.show()
-
+plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/plots/acuracy.png')
+plt.close()
 
 best_epoch = val_acc.index(max(val_acc)) + 1
 print(f'Best epoch: {best_epoch} (accuracy={max(val_acc):.4f})')
@@ -221,8 +219,9 @@ plt.title('Training and validation loss')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig('/Users/verjim/miniML_multipatch/out_model_training/loss.png')
-plt.show()
+plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/plots/loss.png')
+plt.close()
+
 loss_val = new_model.evaluate(x_test,y_test)[0]
 acc_val = new_model.evaluate(x_test,y_test)[1]
 
@@ -234,8 +233,8 @@ plt.plot(fpr, tpr, marker='.')
 plt.xlabel('False positive rate')
 plt.ylabel('True positive rate')
 plt.title('ROC curve')
-plt.savefig('/Users/verjim/miniML_multipatch/out_model_training/ROC_curve_dataset2.png')
-plt.show()
+plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/plots/ROC_curve_dataset2.png')
+plt.close()
 
 print('Area under curve, AUC = ', auc(fpr, tpr))
 optimal_threshold = thresholds[np.argmax(tpr - fpr)]
@@ -245,18 +244,18 @@ y_pred2 = (new_model.predict(x_test) >= optimal_threshold).astype(int)
 cm = confusion_matrix(y_test, y_pred2)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm)
 disp.plot(cmap='Blues')
-plt.savefig('/Users/verjim/miniML_multipatch/out_model_training/confusion_matrix_dataset1.png')
-plt.show()
+plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/plots/confusion_matrix_dataset1.png')
+plt.close()
 
 # save results        
-model_name = "/Users/verjim/miniML_multipatch/out_model_training/lstm_transfer_oct_2024"
+model_name = "/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/lstm_transfer_oct_2024"
 new_model.save(model_name + '.h5')
 
-np.savetxt('/Users/verjim/miniML_multipatch/out_model_training/fpr.txt', fpr)
-np.savetxt('/Users/verjim/miniML_multipatch/out_model_training/tpr.txt', tpr)
-np.savetxt('/Users/verjim/miniML_multipatch/out_model_training/accuracy.txt', [epochs, acc, val_acc])
-np.savetxt('/Users/verjim/miniML_multipatch/out_model_training/loss.txt', [epochs, loss, val_loss])
+np.savetxt('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/fpr.txt', fpr)
+np.savetxt('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/tpr.txt', tpr)
+np.savetxt('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/accuracy.txt', [epochs, acc, val_acc])
+np.savetxt('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/loss.txt', [epochs, loss, val_loss])
 
-with open("/Users/verjim/miniML_multipatch/out_model_training/training_settings.txt", "w") as text_file:
+with open("/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/training_settings.txt", "w") as text_file:
     text_file.write(text_format)
 
