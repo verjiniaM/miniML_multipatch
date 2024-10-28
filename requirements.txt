@@ -1,13 +1,8 @@
 scikit-learn
-matplotlib
-h5py
-pandas
 numpy
 scipy
-<<<<<<< HEAD
-tensorflow==2.13.0
-=======
-tensorflow>=2.12.0,<2.16.0
->>>>>>> upstream/main
 pyabf
 PyQt5
+openpyxl
+matplotlib
+pandas
