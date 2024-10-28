@@ -1,0 +1,2 @@
+model_checkpoint_path: "gc_weights"
+all_model_checkpoint_paths: "gc_weights"
