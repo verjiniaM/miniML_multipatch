@@ -8,7 +8,7 @@ import pandas as pd
 
 
 a = 13
-server = True
+server = False
 
 if server:
     # server paths
@@ -87,5 +87,7 @@ axs[1].scatter(detection_1.event_peak_times, trace.data[detection_1.event_peak_l
 axs[2].plot(trace.time_axis, trace.data, c='b')
 axs[2].scatter(detection_2.event_peak_times, trace.data[detection_2.event_peak_locations], c='orange', zorder=2)
 plt.show()
-plt.savefig('/alzheimer/verjinia/data/out_model_comparison/compare_detection.png')
-plt.close()
+
+if server:
+    plt.savefig('/alzheimer/verjinia/data/out_model_comparison/compare_detection.png')
+    plt.close()
