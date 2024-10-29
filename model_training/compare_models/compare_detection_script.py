@@ -104,8 +104,8 @@ def create_data (file_index, swp_number = 'all',
     print('Data for the comparison of the two models saved in ' + output_folder)
 
 def plot_model_comparison(latest = True,
-                          plots_folder = './model_training/compare_models/plots/',
-                          data_folder = './model_training/compare_models/data/'):
+                          plots_folder = '/Users/verjim/miniML_multipatch/model_training/compare_models/plots/',
+                          data_folder = '/Users/verjim/miniML_multipatch/model_training/compare_models/data/'):
     '''
     Function to plot the latest comparison of the two models
     '''
@@ -128,7 +128,7 @@ def plot_model_comparison(latest = True,
         peaks_locs_trained = f['peaks_locs_trained'][:]
 
         trace_time = f['trace_time'][:]
-        trace_data = f[' trace_data'][:]
+        trace_data = f['trace_data'][:]
 
     _, axs = plt.subplots(3, 1, sharex = False)
 
