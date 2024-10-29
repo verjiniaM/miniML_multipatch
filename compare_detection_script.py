@@ -5,6 +5,7 @@ from miniML import MiniTrace, EventDetection
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import h5py
 
 
 a = 13
@@ -73,19 +74,38 @@ detection_2 = EventDetection(data = trace,
 
 detection_2.detect_events(eval = True, convolve_win = 20, resample_to_600 = True)
 
-fig, axs = plt.subplots(3, 1, sharex = False)
+# save the detection results
+with h5py.File('/alzheimer/verjinia/data/out_model_comparison/detection_results.h5', 'w') as f:
+    f.create_dataset("prediction_x", data = np.arange(0, len(detection_1.prediction)) * detection_1.stride_length * trace.sampling)
+    f.create_dataset("prediction_old_model", data = detection_1.prediction)
+    f.create_dataset("event_peaks_old", data = detection_1.event_peak_times)
+    f.create_dataset("peaks_locs_old", data = trace.data[detection_1.event_peak_locations])
 
-prediction_x = np.arange(0, len(detection_1.prediction)) * detection_1.stride_length * trace.sampling
+    f.create_dataset("prediction_new_model", data = detection_2.prediction)
+    f.create_dataset("event_peaks_new", data = detection_2.event_peak_times)
+    f.create_dataset("peeaks_new", data = trace.data[detection_2.event_peak_locations])
 
-axs[0].plot(prediction_x, detection_1.prediction, c='k', alpha=0.7, label=f'{model_1}')
-axs[0].plot(prediction_x, detection_2.prediction, c='b', alpha=0.7, label=f'{model_1}')
-axs[0].legend()
+    f.create_dataset("trace_time", data = trace.time_axis)
+    f.create_dataset(" trace_data", data = trace.data)
+    
+    
 
-axs[1].plot(trace.time_axis, trace.data, c='k')
-axs[1].scatter(detection_1.event_peak_times, trace.data[detection_1.event_peak_locations], c='orange', zorder=2)
+
+# fig, axs = plt.subplots(3, 1, sharex = False)
+
+# prediction_x = np.arange(0, len(detection_1.prediction)) * detection_1.stride_length * trace.sampling
+
+# axs[0].plot(prediction_x, detection_1.prediction, c='k', alpha=0.7, label=f'{model_1}')
+# axs[0].plot(prediction_x, detection_2.prediction, c='b', alpha=0.7, label=f'{model_1}')
+# axs[0].legend()
+
+# axs[1].plot(trace.time_axis, trace.data, c='k')
+# axs[1].scatter(detection_1.event_peak_times, trace.data[detection_1.event_peak_locations], c='orange', zorder=2)
 
 axs[2].plot(trace.time_axis, trace.data, c='b')
 axs[2].scatter(detection_2.event_peak_times, trace.data[detection_2.event_peak_locations], c='orange', zorder=2)
 plt.show()
-plt.savefig('/alzheimer/verjinia/data/out_model_comparison/compare_detection.png')
-plt.close()
+
+if server:
+    plt.savefig('/alzheimer/verjinia/data/out_model_comparison/compare_detection.png')
+    plt.close()
