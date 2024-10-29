@@ -263,7 +263,7 @@ plt.close()
 
 # save results        
 
-model_name = './models/transfer_learning/human_pyramids_L2_3/' + date_prefix + '_lstm_transfer.h5'
+model_name = './models/transfer_learning/human_pyramids_L2_3/' + date_prefix + '_lstm_transfer'
 new_model.save(model_name + '.h5')
 
 np.savetxt(new_dir_path + '/' + date_prefix + '_fpr.txt', fpr)
