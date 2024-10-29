@@ -1,4 +1,5 @@
 import tensorflow as tf
+from datetime import datetime
 from sklearn.preprocessing import minmax_scale
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import auc, confusion_matrix, ConfusionMatrixDisplay, roc_curve
@@ -6,14 +7,11 @@ from tensorflow.keras.layers import (Input, BatchNormalization, AveragePooling1D
                                      Conv1D, Bidirectional, LSTM, Dense, Dropout, LeakyReLU)
 
 
-from tensorflow.keras.optimizers.legacy import Adam
-import pickle
+from tensorflow.keras.optimizers.legacy import Ada
 from scipy.signal import resample
-from datetime import datetime
 import h5py
 import numpy as np
 import time
-import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import warnings
@@ -25,6 +23,9 @@ import platform
 print(platform. python_version())
 
 def build_model(x_train, dropout):
+    '''
+    Builds a model with the same architecture as the base model, but with a different input shape.
+    '''
     dropout_rate = dropout
 
     model = tf.keras.models.Sequential()
@@ -56,6 +57,8 @@ def build_model(x_train, dropout):
     
     return model
 
+date_prefix = datetime.now().strftime("%Y_%b_%d")
+
 # Set training params
 training_size = 0.8
 testing_size = 'None'
@@ -65,7 +68,7 @@ epsilon = 1e-8
 patience = 15
 epochs = 100
 batch_size = 32
-training_data = '/alzheimer/verjinia/data/training_data/complete_training_dataset.h5'
+training_data = './model_training/training_data/complete_training_dataset.h5'
 base_model_name = './models/GC_lstm_model.h5'
 
 
@@ -103,10 +106,21 @@ x = resample(x, 600, axis = 1)
 # # EventDetection object. 
 # x *= -1
 
+
+# Define the output folder
+out_folder = './model_training/out_model_traininig/'
+
+new_dir_path = os.path.join(out_folder, datetime.now().strftime("%b_%Y"))  # Format: Mon_YYYY
+
+# Create the directory if it doesn't exist
+os.makedirs(new_dir_path, exist_ok=True)
+
+print(f"Results will be saved in : {new_dir_path}")
+
 axs[1].plot(x[1])
 axs[1].set_title('after resampling and inverting\n')
 plt.tight_layout()
-plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/resampling_and_inverting.png')
+plt.savefig(new_dir_path + '/' + date_prefix +'_resampling_and_inverting.png')
 plt.close()
 
 # Scale and split the data.
@@ -131,14 +145,14 @@ x_train, x_test, y_train, y_test = train_test_split(scaled_data, merged_y, train
 old_model = tf.keras.models.load_model(base_model_name, compile=compile)
 
 # save weights from GC model
-old_model.save_weights('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/gc_weights')
+old_model.save_weights(new_dir_path + '/' + date_prefix + '_gc_weights')
 
 # re-create model with different input shape
 new_model = build_model(x_train, dropout)
 new_model.summary()
 
 # Load old model weights into new model
-new_model.load_weights('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/gc_weights')
+new_model.load_weights(new_dir_path + '/' + date_prefix + '_gc_weights')
 
 # Freeze / unfreeze layers that should / should not be trained
 for ind, layer in enumerate(new_model.layers):
@@ -162,7 +176,7 @@ new_model.compile(optimizer=Adam(learning_rate=learn_rate, epsilon=epsilon, amsg
 new_model.summary()
 
 # Train chosen layers of new model        
-checkpoint_filepath = '/alzheimer/verjinia/miniML_multipatch/model_training/out_model_training/model_{epoch:02d}_{val_Accuracy:.03f}.h5'
+checkpoint_filepath = new_dir_path + '/' + date_prefix + '_model_{epoch:02d}_{val_Accuracy:.03f}.h5'
 
 model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_filepath,
@@ -203,7 +217,7 @@ plt.title('Training and validation accuracy')
 plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.legend()
-plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/plots/acuracy.png')
+plt.savefig(new_dir_path + '/' + date_prefix + '_acuracy.png')
 plt.close()
 
 best_epoch = val_acc.index(max(val_acc)) + 1
@@ -219,7 +233,7 @@ plt.title('Training and validation loss')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
-plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/plots/loss.png')
+plt.savefig(new_dir_path + '/' + date_prefix + '_loss.png')
 plt.close()
 
 loss_val = new_model.evaluate(x_test,y_test)[0]
@@ -233,7 +247,7 @@ plt.plot(fpr, tpr, marker='.')
 plt.xlabel('False positive rate')
 plt.ylabel('True positive rate')
 plt.title('ROC curve')
-plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/plots/ROC_curve_dataset2.png')
+plt.savefig(new_dir_path + '/' + date_prefix + '_ROC_curve_dataset2.png')
 plt.close()
 
 print('Area under curve, AUC = ', auc(fpr, tpr))
@@ -244,18 +258,19 @@ y_pred2 = (new_model.predict(x_test) >= optimal_threshold).astype(int)
 cm = confusion_matrix(y_test, y_pred2)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm)
 disp.plot(cmap='Blues')
-plt.savefig('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/plots/confusion_matrix_dataset1.png')
+plt.savefig(new_dir_path + '/' + date_prefix + '_confusion_matrix_dataset1.png')
 plt.close()
 
 # save results        
-model_name = "/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/lstm_transfer_oct_2024"
+
+model_name = './models/transfer_learning/human_pyramids_L2_3/' + date_prefix + '_lstm_transfer.h5'
 new_model.save(model_name + '.h5')
 
-np.savetxt('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/fpr.txt', fpr)
-np.savetxt('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/tpr.txt', tpr)
-np.savetxt('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/accuracy.txt', [epochs, acc, val_acc])
-np.savetxt('/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/loss.txt', [epochs, loss, val_loss])
+np.savetxt(new_dir_path + '/' + date_prefix + '_fpr.txt', fpr)
+np.savetxt(new_dir_path + '/' + date_prefix + '_tpr.txt', tpr)
+np.savetxt(new_dir_path + '/' + date_prefix + '_accuracy.txt', [epochs, acc, val_acc])
+np.savetxt(new_dir_path + '/' + date_prefix + '_loss.txt', [epochs, loss, val_loss])
 
-with open("/alzheimer/verjinia/miniML_multipatch/model_training/out_model_traininig/training_settings.txt", "w") as text_file:
+with open(new_dir_path + '/' + date_prefix + '_training_settings.txt', 'w') as text_file:
     text_file.write(text_format)
 
