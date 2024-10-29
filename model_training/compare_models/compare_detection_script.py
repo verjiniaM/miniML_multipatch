@@ -6,29 +6,31 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-sys.path.append('../miniML_multipatch/core/')
-
+#sys.path.append('../miniML_multipatch/core/')
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../core/'))
 from miniML import MiniTrace, EventDetection # type: ignore
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../'))
 
 def main():
     '''
     Function to run the comparison of the two models
     '''
     if sys.argv[1] == 'create':
-        create_data(sys.argv[2], sys.argv[3])
+        create_data(int(sys.argv[2]), int(sys.argv[3]))
     elif sys.argv[1] == 'plot':
         plot_model_comparison()
 
 def create_data (file_index, swp_number = 'all',
-                 output_folder = './model_training/compare_models/data/'):
+                 output_folder = '/alzheimer/verjinia/miniML_multipatch/model_training/compare_models/data/'):
     '''
     Function to create data for the comparison of the two models
     file_index: int, index of the file in the metadata table with perfect traces
     swp_number: int, number of the sweeps to be analysed. If all, all the cleam sweeps will be analysed
     '''
     # server paths
-    default_model = './models/GC_lstm_model.h5'
-    trained_model = './models/transfer_learning/human_pyramids_L2_3/lstm_transfer_oct_2024.h5'
+    models_path = '/alzheimer/verjinia/miniML_multipatch/models/'
+    default_model =  models_path + 'GC_lstm_model.h5'
+    trained_model = models_path + 'transfer_learning/human_pyramids_L2_3/2024_Oct_29_lstm_transfer.h5'
 
     perfect_traces_df = pd.read_excel('/alzheimer/verjinia/data/metadata_tables/perfect_traces.xlsx')
     data_path = '/alzheimer/verjinia/data/recordings/'
