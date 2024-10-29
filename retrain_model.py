@@ -7,7 +7,7 @@ from tensorflow.keras.layers import (Input, BatchNormalization, AveragePooling1D
                                      Conv1D, Bidirectional, LSTM, Dense, Dropout, LeakyReLU)
 
 
-from tensorflow.keras.optimizers.legacy import Ada
+from tensorflow.keras.optimizers.legacy import Adam
 from scipy.signal import resample
 import h5py
 import numpy as np

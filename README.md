@@ -72,3 +72,16 @@ Please feel free to contact us in case of questions, either via email, or by ope
 
 ### ✉️ CONTACT
 philippsean.oneill@uzh.ch or igor.delvendahl@uzh.ch
+
+
+
+# added from Verjinia - quick workflow
+- generate and score training data
+- retrain model and get data (server) 
+    python retrain_model.py 
+- get data to compare the models (server)
+    python /compare_models/compare_detection_script.py 'create' 13 2
+- push to gitHub
+- pull on the local branch (laptop)
+- plot the model comparison in an interactive plot (laptop)
+    python /compare_models/compare_detection_script.py 'plot'
