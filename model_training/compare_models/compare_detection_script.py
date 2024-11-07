@@ -109,7 +109,7 @@ def create_data (file_index, swp_number = 'all',
 
     print('Data for the comparison of the two models saved in ' + output_folder)
 
-def plot_model_comparison(latest = False,
+def plot_model_comparison(latest = True,
                           plots_folder = '/Users/verjim/miniML_multipatch/model_training/compare_models/plots/',
                           data_folder = '/Users/verjim/miniML_multipatch/model_training/compare_models/data/'):
     '''
@@ -117,9 +117,10 @@ def plot_model_comparison(latest = False,
     '''
     if latest:
         files = os.listdir(data_folder)
-        files.sort()
+        files.sort(key=os.path.getctime)
         data_file = files[-1]
     else:
+        print(files)
         data_file = input('Enter the name of the data file to be plotted: ')
 
     with h5py.File(data_folder + data_file, 'r') as f:
