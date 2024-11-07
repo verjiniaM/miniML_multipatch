@@ -4,9 +4,8 @@ import sys
 from datetime import datetime
 import h5py
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-#sys.path.append('../miniML_multipatch/core/')
+sys.path.append('../miniML_multipatch/core/')
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../core/'))
 from miniML import MiniTrace, EventDetection # type: ignore
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../'))
@@ -25,12 +24,11 @@ def create_data (file_index, swp_number = 'all',
     '''
     Function to create data for the comparison of the two models
     file_index: int, index of the file in the metadata table with perfect traces
-    swp_number: int, number of the sweeps to be analysed. If all, all the cleam sweeps will be analysed
     '''
     # server paths
     models_path = '/alzheimer/verjinia/miniML_multipatch/models/'
-    default_model =  models_path + 'GC_lstm_model.h5'
-    trained_model = models_path + 'transfer_learning/human_pyramids_L2_3/2024_Oct_29_lstm_transfer.h5'
+    model1 =  models_path + 'GC_lstm_model.h5'
+    model2 = models_path + 'transfer_learning/human_pyramids_L2_3/2024_Oct_29_lstm_transfer.h5'
 
     perfect_traces_df = pd.read_excel('/alzheimer/verjinia/data/metadata_tables/perfect_traces.xlsx')
     data_path = '/alzheimer/verjinia/data/recordings/'
@@ -57,7 +55,6 @@ def create_data (file_index, swp_number = 'all',
     event_direction = 'negative'
     training_direction = 'negative'
 
-
     trace = MiniTrace.from_axon_file_MP(filepath = filename,
                                         channel = chan,
                                         scaling = scaling,
@@ -66,9 +63,8 @@ def create_data (file_index, swp_number = 'all',
                                         first_point = 0,
                                         last_point = 5500)
 
-
-    default_detection = EventDetection(data = trace,
-                            model_path = default_model,
+    detection1 = EventDetection(data = trace,
+                            model_path = model1,
                             window_size = win_size,
                             model_threshold = threshold,
                             batch_size = 512,
@@ -76,10 +72,10 @@ def create_data (file_index, swp_number = 'all',
                             training_direction = training_direction,
                             compile_model = True)
 
-    default_detection.detect_events(eval = True, convolve_win = 20, resample_to_600 = True)
+    detection1.detect_events(eval = True, convolve_win = 20, resample_to_600 = True)
 
-    trained_detection = EventDetection(data = trace,
-                           model_path = trained_model,
+    detection2 = EventDetection(data = trace,
+                           model_path = model2,
                            window_size = win_size,
                            model_threshold = threshold,
                            batch_size = 512,
@@ -87,23 +83,33 @@ def create_data (file_index, swp_number = 'all',
                            training_direction = training_direction,
                            compile_model = True)
 
-    trained_detection.detect_events(eval = True, convolve_win = 20, resample_to_600 = True)
-    prediction_x = np.arange(0, len(default_detection.prediction)) * default_detection.stride_length * trace.sampling
+    detection2.detect_events(eval = True, convolve_win = 20, resample_to_600 = True)
+    # prediction_x = np.arange(0, len(detection1.prediction)) * detection1.stride_length * trace.sampling
     date_prefix = datetime.now().strftime("%Y_%b_%d")
-    with h5py.File(output_folder + date_prefix + '_default_trained.h5', 'w') as f:
-        f.create_dataset('prediction_x', data = prediction_x)
-        f.create_dataset('prediction_default', data = default_detection.prediction)
-        f.create_dataset('event_peaks_default', data = default_detection.event_peak_times)
-        f.create_dataset('peaks_locs_default', data = trace.data[default_detection.event_peak_locations])
-        f.create_dataset('prediction_trained', data = trained_detection.prediction)
-        f.create_dataset('event_peaks_trained', data = trained_detection.event_peak_times)
-        f.create_dataset('peaks_locs_trained', data = trace.data[trained_detection.event_peak_locations])
-        f.create_dataset('trace_time', data = trace.time_axis)
-        f.create_dataset('trace_data', data = trace.data)
+    with h5py.File(output_folder + date_prefix + '_model_comparison.h5', 'w') as f:
+
+        model_1 = f.create_group('model_1')
+        model_1.create_dataset('prediction1', data = detection1.prediction)
+        model_1.create_dataset('event_peaks1', data = detection1.event_peak_times)
+        model_1.create_dataset('peak_locs1', data = trace.data[detection1.event_peak_locations])
+
+        model_2 = f.create_group('model_2')
+        model_2.create_dataset('prediction2', data = detection2.prediction)
+        model_2.create_dataset('event_peaks2', data = detection2.event_peak_times)
+        model_2.create_dataset('peak_locs2', data = trace.data[detection2.event_peak_locations])
+
+        trace_ = f.create_group('trace_')
+        trace_.create_dataset('trace_time', data = trace.time_axis)
+        trace_.create_dataset('trace_data', data = trace.data)
+
+        model_1.attrs['model_1_name'] = model1[model1.rfind('/') + 1 :-3]
+        model_2.attrs['model_2_name'] = model2[model2.rfind('/') + 1 :-3]
+        trace_.attrs['filename'] = perfect_traces_df['Name of recording'][file_index]
+        trace_.attrs['chan'] = str(chan)
 
     print('Data for the comparison of the two models saved in ' + output_folder)
 
-def plot_model_comparison(latest = True,
+def plot_model_comparison(latest = False,
                           plots_folder = '/Users/verjim/miniML_multipatch/model_training/compare_models/plots/',
                           data_folder = '/Users/verjim/miniML_multipatch/model_training/compare_models/data/'):
     '''
@@ -117,32 +123,60 @@ def plot_model_comparison(latest = True,
         data_file = input('Enter the name of the data file to be plotted: ')
 
     with h5py.File(data_folder + data_file, 'r') as f:
-        prediction_x = f['prediction_x'][:]
+        # Access model_1 group and its datasets
+        model_1 = f['model_1']
+        prediction_1 = model_1['prediction1'][:]
+        event_peaks_1 = model_1['event_peaks1'][:]
+        peak_locs_1 = model_1['peak_locs1'][:]
+        model_1_name = model_1.attrs['model_1_name']
 
-        prediction_default = f['prediction_default'][:]
-        event_peaks_default = f['event_peaks_default'][:]
-        peaks_locs_default = f['peaks_locs_default'][:]
+        # Access model_2 group and its datasets
+        model_2 = f['model_2']
+        prediction_2 = model_2['prediction2'][:]
+        event_peaks_2 = model_2['event_peaks2'][:]
+        peak_locs_2 = model_2['peak_locs2'][:]
+        model_2_name = model_2.attrs['model_2_name']
 
-        prediction_trained = f['prediction_trained'][:]
-        event_peaks_trained = f['event_peaks_trained'][:]
-        peaks_locs_trained = f['peaks_locs_trained'][:]
+        # Access trace group and its datasets
+        trace_group = f['trace_']
+        trace_time = trace_group['trace_time'][:]
+        trace_data = trace_group['trace_data'][:]
+        fn = trace_group.attrs['filename']
+        chan = trace_group.attrs['chan']
 
-        trace_time = f['trace_time'][:]
-        trace_data = f['trace_data'][:]
+    _, axs = plt.subplots(3, 1, sharex = True)
 
-    _, axs = plt.subplots(3, 1, sharex = False)
-
-    axs[0].plot(prediction_x, prediction_default, c='k', alpha=0.7, label='old')
-    axs[0].plot(prediction_x, prediction_trained, c='b', alpha=0.7, label='new')
+    axs[0].plot(trace_time[:len(prediction_1)], prediction_1, c='k', alpha=0.7, label= model_1_name)
+    axs[0].plot(trace_time[:len(prediction_2)], prediction_2, c='b', alpha=0.7, label= model_2_name)
+    axs[0].set_title('Predictions')
     axs[0].legend()
 
     axs[1].plot(trace_time, trace_data, c='k')
-    axs[1].scatter(event_peaks_default, peaks_locs_default, c='orange', zorder=2)
+    axs[1].scatter(event_peaks_1, peak_locs_1, c='orange', zorder=2)
+    axs[1].set_title(model_1_name)
 
     axs[2].plot(trace_time, trace_data, c='b')
-    axs[2].scatter(event_peaks_trained, peaks_locs_trained, c='orange', zorder=2)
+    axs[2].scatter(event_peaks_2, peak_locs_2, c='orange', zorder=2)
+    axs[2].set_title(model_2_name)
+    
+    _.suptitle(fn + chan)
     plt.show()
     plt.savefig(plots_folder + data_file[:8] + '_comparison.png')
+
+def print_h5_structure(file_path):
+    """
+    Function to print the structure of an HDF5 file.
+    Args:
+        file_path (str): Path to the HDF5 file.
+    """
+    with h5py.File(file_path, 'r') as f:
+        def print_structure(name, obj):
+            if isinstance(obj, h5py.Group):
+                print(f"Group: {name}")
+            elif isinstance(obj, h5py.Dataset):
+                print(f"Dataset: {name}, shape: {obj.shape}, dtype: {obj.dtype}")
+
+        f.visititems(print_structure)
 
 if __name__ == "__main__":
     main()
