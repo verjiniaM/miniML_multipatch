@@ -10,14 +10,27 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../core/'))
 from miniML import MiniTrace, EventDetection # type: ignore
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../'))
 
+import random
 def main():
     '''
     Function to run the comparison of the two models
     '''
-    if sys.argv[1] == 'create':
-        create_data(int(sys.argv[2]), int(sys.argv[3]))
-    elif sys.argv[1] == 'plot':
-        plot_model_comparison()
+    # if sys.argv[1] == 'create':
+    #     create_data(int(sys.argv[2]), int(sys.argv[3]))
+    # elif sys.argv[1] == 'plot':
+    #     plot_model_comparison()
+
+    df_path = '/alzheimer/verjinia/data/metadata_tables/2024-0 9-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx'
+    events_df = pd.read_excel(df_path)
+
+    random_file_indx = events_df[events_df['use'] == 'eval_model_Oct_2024'].index
+
+    for file in random_file_indx[11:]:
+        swps_keep = ast.literal_eval(events_df['swps_to_analyse'].iloc[file]) 
+        random_swp = random.choice(swps_keep)
+        
+        create_data(file, swp_number = random_swp,
+                    output_folder = '/alzheimer/verjinia/miniML_multipatch/model_training/compare_models/data/')
 
 def create_data (file_index, swp_number = 'all',
                  output_folder = '/alzheimer/verjinia/miniML_multipatch/model_training/compare_models/data/'):
@@ -30,22 +43,22 @@ def create_data (file_index, swp_number = 'all',
     model1 =  models_path + 'GC_lstm_model.h5'
     model2 = models_path + 'transfer_learning/human_pyramids_L2_3/2024_Oct_29_lstm_transfer.h5'
 
-    perfect_traces_df = pd.read_excel('/alzheimer/verjinia/data/metadata_tables/perfect_traces.xlsx')
+    events_df = pd.read_excel('/alzheimer/verjinia/data/metadata_tables/2024-09-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx')
     data_path = '/alzheimer/verjinia/data/recordings/'
-    filename  = data_path + perfect_traces_df['Name of recording'][file_index]
+    filename  = data_path + events_df['Name of recording'][file_index]
 
 #     # local paths
-#     perfect_traces_df = pd.read_excel('/Users/verjim/laptop_D_17.01.2022/Schmitz_lab/results/human/data/summary_data_tables/events/perfect_traces.xlsx')
+#     events_df = pd.read_excel('/Users/verjim/laptop_D_17.01.2022/Schmitz_lab/results/human/data/summary_data_tables/events/2024-09-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx')
 #     patcher_dict = {'Verji':'data_verji/', 'Rosie':'data_rosie/'}
 #     data_path = '/Users/verjim/laptop_D_17.01.2022/Schmitz_lab/data/human/'
-#     filename  = data_path + patcher_dict[perfect_traces_df.patcher[file_index]] + \
-# perfect_traces_df['OP'][file_index] + '/' + perfect_traces_df['Name of recording'][file_index]
+#     filename  = data_path + patcher_dict[events_df.patcher[file_index]] + \
+# events_df['OP'][file_index] + '/' + events_df['Name of recording'][file_index]
 
-    chan = perfect_traces_df.cell_ch.values[file_index]
-    swps_keep = ast.literal_eval(perfect_traces_df.swps_to_analyse.values[file_index])
+    chan = events_df.cell_ch.values[file_index]
+    swps_keep = ast.literal_eval(events_df.swps_to_analyse.values[file_index])
 
     if isinstance(swp_number, int) and swp_number <= len(swps_keep):
-        swps_keep = ast.literal_eval(perfect_traces_df.swps_to_analyse.values[file_index])[:swp_number]
+        swps_keep = ast.literal_eval(events_df.swps_to_analyse.values[file_index])[:swp_number]
     swps_delete = list(set(range(30)) - set(swps_keep))
 
     scaling = 1
@@ -86,7 +99,7 @@ def create_data (file_index, swp_number = 'all',
     detection2.detect_events(eval = True, convolve_win = 20, resample_to_600 = True)
     # prediction_x = np.arange(0, len(detection1.prediction)) * detection1.stride_length * trace.sampling
     date_prefix = datetime.now().strftime("%Y_%b_%d")
-    with h5py.File(output_folder + date_prefix + '_model_comparison.h5', 'w') as f:
+    with h5py.File(output_folder + date_prefix + events_df['Name of recording'][file_index] + str(chan) + '_model_comparison.h5', 'w') as f:
 
         model_1 = f.create_group('model_1')
         model_1.create_dataset('prediction1', data = detection1.prediction)
@@ -104,7 +117,7 @@ def create_data (file_index, swp_number = 'all',
 
         model_1.attrs['model_1_name'] = model1[model1.rfind('/') + 1 :-3]
         model_2.attrs['model_2_name'] = model2[model2.rfind('/') + 1 :-3]
-        trace_.attrs['filename'] = perfect_traces_df['Name of recording'][file_index]
+        trace_.attrs['filename'] = events_df['Name of recording'][file_index]
         trace_.attrs['chan'] = str(chan)
 
     print('Data for the comparison of the two models saved in ' + output_folder)
