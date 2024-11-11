@@ -117,13 +117,14 @@ def plot_model_comparison(latest = True,
     '''
     if latest:
         files = os.listdir(data_folder)
+        files = [os.path.join(data_folder, f) for f in files]  # Get full paths
         files.sort(key=os.path.getctime)
         data_file = files[-1]
     else:
         print(files)
         data_file = input('Enter the name of the data file to be plotted: ')
 
-    with h5py.File(data_folder + data_file, 'r') as f:
+    with h5py.File(data_file, 'r') as f:
         # Access model_1 group and its datasets
         model_1 = f['model_1']
         prediction_1 = model_1['prediction1'][:]
@@ -160,9 +161,9 @@ def plot_model_comparison(latest = True,
     axs[2].scatter(event_peaks_2, peak_locs_2, c='orange', zorder=2)
     axs[2].set_title(model_2_name)
     
-    _.suptitle(fn + chan)
+    _.suptitle(fn +' chan ' +chan)
+    plt.savefig(plots_folder + fn[:-4] + '_' + chan + '_comparison.png')
     plt.show()
-    plt.savefig(plots_folder + data_file[:8] + '_comparison.png')
 
 def print_h5_structure(file_path):
     """
