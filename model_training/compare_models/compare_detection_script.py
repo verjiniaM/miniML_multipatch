@@ -114,10 +114,10 @@ def plot_model_comparison(latest = True,
     '''
     Function to plot the latest comparison of the two models
     '''
+    files = os.listdir(data_folder)
+    files = [os.path.join(data_folder, f) for f in files]  # Get full paths
+    files.sort(key=os.path.getctime)
     if latest:
-        files = os.listdir(data_folder)
-        files = [os.path.join(data_folder, f) for f in files]  # Get full paths
-        files.sort(key=os.path.getctime)
         data_file = files[-1]
     else:
         print(files)
