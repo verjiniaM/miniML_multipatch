@@ -1,5 +1,7 @@
 import ast # type: ignore
 import os
+import shutil
+import random
 import sys
 from datetime import datetime
 import h5py
@@ -10,30 +12,20 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../core/'))
 from miniML import MiniTrace, EventDetection # type: ignore
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../'))
 
-import random
 def main():
     '''
     Function to run the comparison of the two models
     '''
-    # if sys.argv[1] == 'create':
-    #     create_data(int(sys.argv[2]), int(sys.argv[3]))
-    # elif sys.argv[1] == 'plot':
-    #     plot_model_comparison()
-
-    df_path = '/alzheimer/verjinia/data/metadata_tables/2024-0 9-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx'
-    events_df = pd.read_excel(df_path)
-
-    random_file_indx = events_df[events_df['use'] == 'eval_model_Oct_2024'].index
-
-    for file in random_file_indx:
-        swps_keep = ast.literal_eval(events_df['swps_to_analyse'].iloc[file]) 
-        random_swp = random.choice(swps_keep)
-        
-        create_data(file, swp_number = random_swp,
-                    output_folder = '/alzheimer/verjinia/miniML_multipatch/model_training/compare_models/data/')
+    if sys.argv[1] == 'create':
+        create_data(int(sys.argv[2]), int(sys.argv[3]))
+        # copy_folder_contents('/alzheimer/verjinia/data/model_comparison/data/', \
+        #                      '/Users/verjim/miniML_data/data/')
+        print('Data copied to the local folder: ' + '/Users/verjim/miniML_data/data/')
+    elif sys.argv[1] == 'plot':
+        plot_model_comparison()
 
 def create_data (file_index, swp_number = 'all',
-                 output_folder = '/alzheimer/verjinia/miniML_multipatch/model_training/compare_models/data/'):
+                 output_folder = '/alzheimer/verjinia/data/model_comparison/data/'):
     '''
     Function to create data for the comparison of the two models
     file_index: int, index of the file in the metadata table with perfect traces
@@ -46,13 +38,6 @@ def create_data (file_index, swp_number = 'all',
     events_df = pd.read_excel('/alzheimer/verjinia/data/metadata_tables/2024-09-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx')
     data_path = '/alzheimer/verjinia/data/recordings/'
     filename  = data_path + events_df['Name of recording'][file_index]
-
-#     # local paths
-#     events_df = pd.read_excel('/Users/verjim/laptop_D_17.01.2022/Schmitz_lab/results/human/data/summary_data_tables/events/2024-09-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx')
-#     patcher_dict = {'Verji':'data_verji/', 'Rosie':'data_rosie/'}
-#     data_path = '/Users/verjim/laptop_D_17.01.2022/Schmitz_lab/data/human/'
-#     filename  = data_path + patcher_dict[events_df.patcher[file_index]] + \
-# events_df['OP'][file_index] + '/' + events_df['Name of recording'][file_index]
 
     chan = events_df.cell_ch.values[file_index]
     swps_keep = ast.literal_eval(events_df.swps_to_analyse.values[file_index])
@@ -96,10 +81,11 @@ def create_data (file_index, swp_number = 'all',
                            training_direction = training_direction,
                            compile_model = True)
 
-    detection2.detect_events(eval = True, convolve_win = 20, resample_to_600 = True)
-    # prediction_x = np.arange(0, len(detection1.prediction)) * detection1.stride_length * trace.sampling
+    detection2.detect_events(eval=True, convolve_win=20, resample_to_600=True)
+
     date_prefix = datetime.now().strftime("%Y_%b_%d")
-    with h5py.File(output_folder + date_prefix + events_df['Name of recording'][file_index] + str(chan) + '_model_comparison.h5', 'w') as f:
+    with h5py.File(output_folder + date_prefix + events_df['Name of recording'][file_index] + \
+                   str(chan) + '_model_comparison.h5', 'w') as f:
 
         model_1 = f.create_group('model_1')
         model_1.create_dataset('prediction1', data = detection1.prediction)
@@ -123,8 +109,8 @@ def create_data (file_index, swp_number = 'all',
     print('Data for the comparison of the two models saved in ' + output_folder)
 
 def plot_model_comparison(latest = True,
-                          plots_folder = '/Users/verjim/miniML_multipatch/model_training/compare_models/plots/',
-                          data_folder = '/Users/verjim/miniML_multipatch/model_training/compare_models/data/'):
+                          plots_folder = '/Users/verjim/miniML_data/plots/',
+                          data_folder = '/Users/verjim/miniML_data/data/'):
     '''
     Function to plot the latest comparison of the two models
     '''
@@ -173,7 +159,6 @@ def plot_model_comparison(latest = True,
     axs[2].plot(trace_time, trace_data, c='b')
     axs[2].scatter(event_peaks_2, peak_locs_2, c='orange', zorder=2)
     axs[2].set_title(model_2_name)
-    
     _.suptitle(fn +' chan ' +chan)
     plt.savefig(plots_folder + fn[:-4] + '_' + chan + '_comparison.png')
     plt.show()
@@ -192,6 +177,51 @@ def print_h5_structure(file_path):
                 print(f"Dataset: {name}, shape: {obj.shape}, dtype: {obj.dtype}")
 
         f.visititems(print_structure)
+
+def create_eval_data(eval_purpose, num_files):
+    '''
+    Function to create data for the evaluation of the two models
+
+    eval_purpose: str; clarification wht were those files used to, evaluation or training
+    num_files: int; number of files to be used
+    '''
+    df_path = '/alzheimer/verjinia/data/metadata_tables/2024-0 9-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx'
+    events_df = pd.read_excel(df_path)
+
+    # Filter indices where 'use' is NaN
+    nan_indices = events_df[events_df['use'].isna()].index
+    random_file_indx = random.sample(list(nan_indices), num_files)
+    # Update the 'use' column at the selected random indices
+    events_df.loc[random_file_indx, 'use'] = eval_purpose
+    events_df.to_excel(df_path, index=False)
+
+    for file in random_file_indx:
+        swps_keep = ast.literal_eval(events_df['swps_to_analyse'].iloc[file]) 
+        random_swp = random.choice(swps_keep)
+        create_data(file, swp_number = random_swp)
+
+    # copy_folder_contents('/alzheimer/verjinia/data/model_comparison/data/', \
+    #                     '/Users/verjim/miniML_data/data/')
+
+def copy_folder_contents(src_dir, dst_dir):
+    """
+    Function to copy all contents from one folder to another, 
+    only if they do not already exist in the destination folder.
+    
+    Args:
+        src_dir (str): Path to the source directory.
+        dst_dir (str): Path to the destination directory.
+    """
+    # Ensure the destination directory exists
+    os.makedirs(dst_dir, exist_ok=True)
+
+    # Copy all contents from the source directory to the destination directory
+    for item in os.listdir(src_dir):
+        src_path = os.path.join(src_dir, item)
+        dst_path = os.path.join(dst_dir, item)
+        # Check if the item already exists in the destination folder
+        if not os.path.exists(dst_path):
+            shutil.copytree(src_path, dst_path)
 
 if __name__ == "__main__":
     main()
