@@ -61,16 +61,17 @@ date_prefix = datetime.now().strftime("%Y_%b_%d")
 
 # Set training params
 training_size = 0.8
-testing_size = 'None'
+testing_size = 0.2 #"None"
 dropout = 0.5 
 learn_rate = 2e-8
 epsilon = 1e-8
 patience = 15
 epochs = 100
 batch_size = 32
-training_data = './model_training/training_data/complete_training_dataset.h5'
-base_model_name = './models/GC_lstm_model.h5'
-
+training_data = '././model_training/extract_training_data/output/Nov_2024_train/' + \
+    '_all_types_of_events_checked_to_train_shuffled.h5'
+base_model_name = './models/transfer_learning/human_pyramids_L2_3/2024_Oct_29_lstm_transfer.h5'
+out_folder = './model_training/out_model_traininig/'
 
 settings = {}
 settings['training_size'] = training_size
@@ -105,10 +106,6 @@ x = resample(x, 600, axis = 1)
 # # that have a different direction. When using the model, remember to adjust the event_direction paramter to: direction = 'positive' when generating the
 # # EventDetection object. 
 # x *= -1
-
-
-# Define the output folder
-out_folder = './model_training/out_model_traininig/'
 
 new_dir_path = os.path.join(out_folder, datetime.now().strftime("%b_%Y"))  # Format: Mon_YYYY
 
@@ -241,7 +238,7 @@ acc_val = new_model.evaluate(x_test,y_test)[1]
 
 # Roc curve
 y_preds = new_model.predict(x_test).ravel()
-fpr, tpr, thresholds = roc_curve(y_test, y_preds)
+sudo python apply_tags.py, tpr, thresholds = roc_curve(y_test, y_preds)
 plt.plot([0, 1], [0, 1], 'y--')
 plt.plot(fpr, tpr, marker='.')
 plt.xlabel('False positive rate')
