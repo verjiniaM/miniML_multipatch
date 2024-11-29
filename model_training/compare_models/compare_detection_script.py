@@ -22,7 +22,7 @@ def main():
         #                      '/Users/verjim/miniML_data/data/')
         print('Data copied to the local folder: ' + '/Users/verjim/miniML_data/data/')
     elif sys.argv[1] == 'plot':
-        plot_model_comparison()
+        plot_model_comparison(False)
 
 def create_data (file_index, swp_number = 'all',
                  output_folder = '/alzheimer/verjinia/data/model_comparison/data/'):
@@ -121,8 +121,9 @@ def plot_model_comparison(latest = True,
     if latest:
         data_file = files[-1]
     else:
-        print(files)
-        data_file = input('Enter the name of the data file to be plotted: ')
+        for file_ in files:
+            print(file_[file_.rfind('/')+1:])
+        data_file = data_folder + input('Enter the name of the data file to be plotted: ')
 
     with h5py.File(data_file, 'r') as f:
         # Access model_1 group and its datasets
@@ -160,7 +161,7 @@ def plot_model_comparison(latest = True,
     axs[2].plot(trace_time, trace_data, c='b')
     axs[2].scatter(event_peaks_2, peak_locs_2, c='orange', zorder=2)
     axs[2].set_title(model_2_name)
-    _.suptitle(fn +' chan ' +chan)
+    _.suptitle(fn +' chan ' + chan)
     plt.savefig(plots_folder + fn[:-4] + '_' + chan + '_comparison.png')
     plt.show()
 
