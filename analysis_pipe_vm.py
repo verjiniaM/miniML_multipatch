@@ -1,7 +1,6 @@
 import ast
 import pandas as pd
-from ephys_analysis import funcs_for_results_tables
-from ephys_analysis import funcs_plotting_raw_traces
+from ephys_analysis import funcs_for_results_tables, funcs_plotting_raw_traces
 from ephys_analysis import funcs_human_characterisation as hcf
 
 def main():
@@ -15,7 +14,8 @@ def main():
     plot_chosen_traces(df_merged, 0, 5, 4)
 
     merged_with_comments = pd.read_excel('/Users/verjim/laptop_D_17.01.2022/Schmitz_lab' + \
-                                         '/results/human/data/summary_data_tables/events/2024-09-16_merged_spontan_intrinsic.xlsx')
+                                         '/results/human/data/summary_data_tables/events/' + \
+                                            '2024-09-16_merged_spontan_intrinsic.xlsx')
     merged_with_comments.dropna(subset=['trace_quality_eval'], inplace = True, ignore_index = True )
 
     okey, okey_tr, nice, nice_tr, perfect, perfect_tr, exclude = [], [], [], [], [], [], []
@@ -31,8 +31,8 @@ def main():
             perfect_tr.append(merged_with_comments['treatment'][i])
         elif 'exclude' in com:
             exclude.append(i)
-    
-    df_perfect = merged_with_comments.iloc[perfect, :]
+
+    return merged_with_comments.iloc[perfect, :]
 
 # pylint: disable=line-too-long
 def prep_event_data(intr_data_path, event_type):
@@ -47,7 +47,7 @@ def prep_event_data(intr_data_path, event_type):
     df = df.rename(columns={'Cut sweeps first part (ms)': \
                             'cut_sweeps_to_datapoint'})
     df['Channels to use'] = df['Channels to use'].astype(int)
-    
+
     # removing rows with empty swps_to_analyse
     df = df[(df['swps_to_analyse'] != '[]')].reset_index(drop = True)
     # dropping columns
@@ -79,7 +79,7 @@ def prep_event_data(intr_data_path, event_type):
         patcher = df_intrinsic['patcher'][i]
         cell_IDs_new_intr.append(hcf.get_new_cell_IDs(fn, slic, chans, patcher)[0])
     df_intrinsic['cell_ID_new'] = cell_IDs_new_intr
- 
+
     repeats_s = df['cell_ID_new'].value_counts()
     repeats_s = set(repeats_s[repeats_s > 1].index)
     df_no_repeats = df[~df['cell_ID_new'].isin(repeats_s)].reset_index(drop = True)
@@ -91,9 +91,7 @@ def prep_event_data(intr_data_path, event_type):
     df_merged_all = df_no_repeats.merge(df_intrinsic_no_repeats, left_on = ['cell_ID_new'],right_on  = ['cell_ID_new'], validate = '1:1')
 
     # df_merged = df.merge(df_intrinsic, left_on = ['cell_ID_old'],right_on  = ['cell_ID'], validate = '1:1')
-    
-    
-    # # df_merged = df.merge(df_intrinsic, left_on = ['OP', 'slice', 'Channels to use','patcher'],\
+    # df_merged = df.merge(df_intrinsic, left_on = ['OP', 'slice', 'Channels to use','patcher'],\
     #  #                           right_on  = ['OP', 'slice', 'cell_ch', 'patcher'], validate = '1:1')
     # differences_tr = df_merged[df_merged['treatment'] != df_merged['treatm_old']]
     # differences_cell_id = df_merged[df_merged['cell_ID'] != df_merged['cell_ID_old']]

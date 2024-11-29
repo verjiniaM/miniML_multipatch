@@ -22,20 +22,21 @@ def main():
         #                      '/Users/verjim/miniML_data/data/')
         print('Data copied to the local folder: ' + '/Users/verjim/miniML_data/data/')
     elif sys.argv[1] == 'plot':
-        plot_model_comparison(False)
+        plot_model_comparison()
 
-def create_data (file_index, swp_number = 'all',
-                 output_folder = '/alzheimer/verjinia/data/model_comparison/data/'):
+def create_data (file_index, swp_number):
     '''
     Function to create data for the comparison of the two models
     file_index: int, index of the file in the metadata table with perfect traces
     '''
+    output_folder = '/alzheimer/verjinia/data/model_comparison/data/'
     # server paths
-    models_path = '/alzheimer/verjinia/miniML_multipatch/models/transfer_learning/human_pyramids_L2_3/'
-    model1 =  models_path + '2024_Oct_29_lstm_transfer.h5'
-    model2 = models_path + '2024_lstm_transfer_dec_2024.h5'
+    m_path = '/alzheimer/verjinia/miniML_multipatch/models/transfer_learning/human_pyramids_L2_3/'
+    model1 =  m_path + '2024_Oct_29_lstm_transfer.h5'
+    model2 = m_path + '2024_lstm_transfer_dec_2024.h5'
 
-    events_df = pd.read_excel('/alzheimer/verjinia/data/metadata_tables/2024-09-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx')
+    events_df = pd.read_excel('/alzheimer/verjinia/data/metadata_tables/' +  \
+                              '2024-09-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx')
     data_path = '/alzheimer/verjinia/data/recordings/'
     filename  = data_path + events_df['Name of recording'][file_index]
 
@@ -48,7 +49,7 @@ def create_data (file_index, swp_number = 'all',
 
     scaling = 1
     unit = 'pA'
-    win_size = 3000
+    win_size = 750
     threshold = 0.5
     event_direction = 'negative'
     training_direction = 'negative'
@@ -106,24 +107,22 @@ def create_data (file_index, swp_number = 'all',
         trace_.attrs['filename'] = events_df['Name of recording'][file_index]
         trace_.attrs['chan'] = str(chan)
 
-    print(f"Data for the comparison of {model1[models_path.rfind('/') + 1:]} and " + \
-          f"{model2[models_path.rfind('/') + 1:]} data saved in {output_folder}")
+    print(f"Data for the comparison of {model1[m_path.rfind('/') + 1:]} and " + \
+          f"{model2[m_path.rfind('/') + 1:]} data saved in {output_folder}")
 
-def plot_model_comparison(latest = True,
-                          plots_folder = '/Users/verjim/miniML_data/plots/',
-                          data_folder = '/Users/verjim/miniML_data/data/'):
+def plot_model_comparison():
     '''
     Function to plot the latest comparison of the two models
     '''
+    plots_folder = '/Users/verjim/miniML_data/plots/'
+    data_folder = '/Users/verjim/miniML_data/data/model_comparison/Nov29/'
+
     files = os.listdir(data_folder)
     files = [os.path.join(data_folder, f) for f in files]  # Get full paths
     files.sort(key=os.path.getctime)
-    if latest:
-        data_file = files[-1]
-    else:
-        for file_ in files:
-            print(file_[file_.rfind('/')+1:])
-        data_file = data_folder + input('Enter the name of the data file to be plotted: ')
+    for file_ in files:
+        print(file_[file_.rfind('/')+1:])
+    data_file = data_folder + input('Enter the name of the data file to be plotted: ')
 
     with h5py.File(data_file, 'r') as f:
         # Access model_1 group and its datasets
@@ -162,7 +161,7 @@ def plot_model_comparison(latest = True,
     axs[2].scatter(event_peaks_2, peak_locs_2, c='orange', zorder=2)
     axs[2].set_title(model_2_name)
     _.suptitle(fn +' chan ' + chan)
-    plt.savefig(plots_folder + fn[:-4] + '_' + chan + '_comparison.png')
+    plt.savefig(plots_folder + fn[:4] + '_' + chan + '_comparison.png')
     plt.show()
 
 def print_h5_structure(file_path):
@@ -187,7 +186,8 @@ def create_eval_data(eval_purpose, num_files):
     eval_purpose: str; clarification wht were those files used to, evaluation or training
     num_files: int; number of files to be used
     '''
-    df_path = '/alzheimer/verjinia/data/metadata_tables/2024-0 9-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx'
+    df_path = '/alzheimer/verjinia/data/metadata_tables/' + \
+        '2024-0 9-16_merged_spontan_intrinsic_copy_used_for_model_evl.xlsx'
     events_df = pd.read_excel(df_path)
 
     # Filter indices where 'use' is NaN
@@ -198,7 +198,7 @@ def create_eval_data(eval_purpose, num_files):
     events_df.to_excel(df_path, index=False)
 
     for file in random_file_indx:
-        swps_keep = ast.literal_eval(events_df['swps_to_analyse'].iloc[file]) 
+        swps_keep = ast.literal_eval(events_df['swps_to_analyse'].iloc[file])
         random_swp = random.choice(swps_keep)
         create_data(file, swp_number = random_swp)
 
