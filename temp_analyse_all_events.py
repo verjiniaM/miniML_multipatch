@@ -148,3 +148,5 @@ plt.show()
 day_treatment_means = df.groupby(['day', 'treatment'])['amplitude mean'].mean()
 print("Means by Day and Treatment:")
 print(day_treatment_means)
+
+
