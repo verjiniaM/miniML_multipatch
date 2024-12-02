@@ -17,14 +17,14 @@ def main():
     Function to run the comparison of the two models
     '''
     if sys.argv[1] == 'create':
-        create_data(int(sys.argv[2]), int(sys.argv[3])) # file_index, swp_number
+        create_data(int(sys.argv[2]), int(sys.argv[3])) # file_index, num_swps_to_analyze
         # copy_folder_contents('/alzheimer/verjinia/data/model_comparison/data/', \
         #                      '/Users/verjim/miniML_data/data/')
         print('Data copied to the local folder: ' + '/Users/verjim/miniML_data/data/')
     elif sys.argv[1] == 'plot':
         plot_model_comparison()
 
-def create_data (file_index, swp_number):
+def create_data (file_index, num_swps_to_analyze):
     '''
     Function to create data for the comparison of the two models
     file_index: int, index of the file in the metadata table with perfect traces
@@ -43,8 +43,8 @@ def create_data (file_index, swp_number):
     chan = events_df.cell_ch.values[file_index]
     swps_keep = ast.literal_eval(events_df.swps_to_analyse.values[file_index])
 
-    if isinstance(swp_number, int) and swp_number <= len(swps_keep):
-        swps_keep = ast.literal_eval(events_df.swps_to_analyse.values[file_index])[:swp_number]
+    if isinstance(num_swps_to_analyze, int) and num_swps_to_analyze <= len(swps_keep):
+        swps_keep = ast.literal_eval(events_df.swps_to_analyse.values[file_index])[:num_swps_to_analyze]
     swps_delete = list(set(range(30)) - set(swps_keep))
 
     scaling = 1
@@ -200,7 +200,7 @@ def create_eval_data(eval_purpose, num_files):
     for file in random_file_indx:
         swps_keep = ast.literal_eval(events_df['swps_to_analyse'].iloc[file])
         random_swp = random.choice(swps_keep)
-        create_data(file, swp_number = random_swp)
+        create_data(file, num_swps_to_analyze = random_swp)
 
     # copy_folder_contents('/alzheimer/verjinia/data/model_comparison/data/', \
     #                     '/Users/verjim/miniML_data/data/')

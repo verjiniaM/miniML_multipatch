@@ -358,8 +358,20 @@ class MiniTrace():
         data_long = abf_file.data[channel] * scaling
         swp_num = int(len(data_long)/swp_len)
 
+        non_existant_swps = [num for num in sweeps_delete if num >= swp_num]
+        if non_existant_swps != []:
+            sweeps_delete = list(set(sweeps_delete)- set(non_existant_swps))
+        
+        # when the last sweep is shorter or somthing weird hapened
+        tiny_diff = len(data_long) - swp_num * swp_len
+        if tiny_diff != 0:
+            data_long = data_long[:-tiny_diff]
+
         reshape_data = data_long.reshape(swp_num, swp_len)
         reshape_data = np.delete(reshape_data, sweeps_delete, 0)
+        if last_point > np.shape(reshape_data)[1]:
+            last_point = 0
+            print(f'short sweeps {filepath}')
         reshape_data = np.delete(reshape_data, list(range(first_point, last_point)), 1)
         data_long = reshape_data.flatten()
 
@@ -1232,6 +1244,7 @@ class EventDetection():
             self.event_stats.halfdecays))
         
         avgs = np.array((
+            self.event_stats.event_count,
             self.event_stats.mean(self.event_stats.amplitudes),
             self.event_stats.std(self.event_stats.amplitudes),
             self.event_stats.median(self.event_stats.amplitudes),
@@ -1242,12 +1255,15 @@ class EventDetection():
         
         colnames = [f'event_{i}' for i in range(len(self.event_locations))]
 
-        individual = pd.DataFrame(individual, index=['location', 'score', 'amplitude', 'charge', 'risetime', 'decaytime'], columns=colnames)
-        avgs = pd.DataFrame(avgs, index=['amplitude mean', 'amplitude std', 'amplitude median', 'charge mean', 'risetime mean', 'decaytime mean', 'frequency'])
+        individual = pd.DataFrame(individual, index=['location', 'score', 'amplitude', 'charge', \
+                                                     'risetime', 'decaytime'], columns=colnames)
+        avgs = pd.DataFrame(avgs, index=['event count','amplitude mean', 'amplitude std', 'amplitude median', \
+                                         'charge mean', 'risetime mean (10 - 90)', 'halfdecaytime mean', 'frequency (Hz)'])
         
         individual.to_csv(f'{filename}_individual.csv')
-        avgs.to_csv(f'{filename}_avgs.csv', header=False)
-        print(f'events saved to {filename}_avgs.csv and {filename}_individual.csv')
+        # avgs.to_csv(f'{filename}_avgs.csv', header=False)
+        # print(f'events saved to {filename}_avgs.csv and {filename}_individual.csv')
+        return individual, avgs
 
     def save_to_pickle(self, filename: str='', include_prediction:bool=True, include_data:bool=True) -> None:
         ''' 
