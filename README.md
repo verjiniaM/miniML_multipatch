@@ -76,11 +76,19 @@ philippsean.oneill@uzh.ch or igor.delvendahl@uzh.ch
 
 
 # added from Verjinia - quick workflow
-- generate and score training data
-- retrain model and get data (server) 
-    python retrain_model.py 
+- setup access to the server and kaggle account
+- generate training data
+    - model_training/extract_training_data/generate_training_data_multiple_recordings.py
+    - prerequisites: a table with selected filenames + channels from which to extract events
+- score training data
+    - model_training/extract_training_data/score_train_data.ipynb
+    - create the dataset by first scoring FP (0) and okey events (1)
+    - the second time score the true negatives (0) and the nice events (1)
+- retrain model and get data (kaggle) 
+   -  https://www.kaggle.com/code/verjiniam/miniml-transfer-learning
 - get data to compare the models (server)
-    python /compare_models/compare_detection_script.py 'create' 13 2
+    - compare_models/compare_detection_script.py 'create' 13 2
+    - prerequisites: randomly selected files on which to compare the performance of the two models
 - push to gitHub
 - pull on the local branch (laptop)
 - plot the model comparison in an interactive plot (laptop)

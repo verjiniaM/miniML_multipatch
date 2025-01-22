@@ -52,7 +52,8 @@ win_size = 1500
 scaling = 1e12
 unit = 'pA'
 
-meta_df = pd.read_excel(path + 'training_data.xlsx')
+# a metadata table with randomly selected nice events
+meta_df = pd.read_excel(path + 'training_data.xlsx') # a table with columns [filename, chan, treatment, event_type]
 for h in range(35, len(meta_df)):
     myfile = meta_df.filename[h]
     chan = meta_df.chan[h]
