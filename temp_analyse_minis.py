@@ -5,9 +5,11 @@ from miniML import MiniTrace, EventDetection
 import tensorflow as tf
 print(tf.__version__)
 import pandas as pd
+import daytime
+
 
 # MINI data
-
+date = datetime.datetime.today().strftime('%Y_%m_%d')
 OUT_DIR = '/alzheimer/verjinia/data/analysed_minis/'
 
 data_path = '/alzheimer/verjinia/data/recordings/minis_events/'
@@ -25,7 +27,7 @@ win_size = 750
 stride = int(win_size/30)
 
 result_df = pd.DataFrame(columns = ['OP','patcher','file_name', 'channel', 'slice', \
-                                    'treatment', 'hrs_incubation', 'analysis_len (sec)', \
+                                    'treatment', 'hrs_incubation', 'analysis_len (ms)', \
                                     'event count', 'amplitude mean', 'amplitude std', \
                                     'amplitude median', 'charge mean', 'risetime mean (10 - 90)', \
                                     'halfdecaytime mean', 'frequency (Hz)', 'comment'])
@@ -71,22 +73,22 @@ for i, fn in enumerate(mini_df['filename'][start_indx:]):
 
 
     df_meta = pd.DataFrame({'OP': mini_df.OP.values[i],
+                            'patient_age': mini_df.patient_age.values[i],
                             'patcher': mini_df.patcher.values[i], 
                             'file_name' : fn,
                             'channel' : str(chan), 
                             'slice' : mini_df.slice.values[i],
                             'treatment': mini_df.treatment.values[i], 
                             'hrs_incubation': mini_df.hrs_incubation.values[i],
-                            'analysis_len (sec)': len(trace.data / 20_000)}, index = [0])
+                            'analysis_len (sec)': len(trace.data)/ 20_000}, index = [0])
     
-
     individual, avgs = detection.save_to_csv(save_individ_dir)
 
     df_to_add = pd.concat([df_meta, avgs.T], axis = 1)
     result_df = pd.concat([result_df, df_to_add], axis = 0)
 
     if (i + 1) % 10 == 0: 
-        result_df.to_excel(OUT_DIR + 'all_analyzed_events.xlsx', index=False)
+        result_df.to_excel(OUT_DIR + date +'all_analyzed_events.xlsx', index=False)
  
 
  # quick plot
