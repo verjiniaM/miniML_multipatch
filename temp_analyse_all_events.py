@@ -7,7 +7,7 @@ print(tf.__version__)
 import pandas as pd
 
 # Spontan data
-
+date = datetime.datetime.today().strftime('%Y_%m_%d')
 OUT_DIR = '/alzheimer/verjinia/data/analysed_events/'
 
 data_path = '/alzheimer/verjinia/data/recordings/'
@@ -27,7 +27,7 @@ stride = int(win_size/30)
 # result_df = pd.DataFrame(columns = ['OP','patcher', 'patient_age','file_name', 'channel', 'slice', \
 #                                     'cell_ID', 'day', 'treatment', 'hrs_incubation', 'repatch', \
 #                                     'Rs', 'Rin', 'resting_potential', 'high K concentration', \
-#                                     'analysis_len (sec)', 'event count', 'amplitude mean', 'amplitude std', \
+#                                     'analysis_len (ms)', 'event count', 'amplitude mean', 'amplitude std', \
 #                                     'amplitude median', 'charge mean', 'risetime mean (10 - 90)', \
 #                                     'halfdecaytime mean', 'frequency (Hz)', 'comment'])
 
@@ -87,7 +87,7 @@ for i, fn in enumerate(events_df['Name of recording'][start_indx:]):
                             'Rin': events_df.Rin.values[i], 
                             'resting_potential': events_df.resting_potential.values[i], 
                             'high K concentration': events_df['high K concentration'].values[i],
-                            'analysis_len (sec)': len(trace.data / 20_000)}, index = [0])
+                            'analysis_len (sec)': len(trace.data)/20_000}, index = [0])
     
     if len(detection.events) == 0:
         result_df = pd.concat([result_df, df_meta], axis = 0)
@@ -99,7 +99,7 @@ for i, fn in enumerate(events_df['Name of recording'][start_indx:]):
     result_df = pd.concat([result_df, df_to_add], axis = 0)
 
     if (i + 1) % 10 == 0: 
-        result_df.to_excel(OUT_DIR + 'all_analyzed_events.xlsx', index=False)
+        result_df.to_excel(OUT_DIR + date +'all_analyzed_events.xlsx', index=False)
     
 
 
