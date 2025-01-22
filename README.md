@@ -84,7 +84,7 @@ philippsean.oneill@uzh.ch or igor.delvendahl@uzh.ch
     - model_training/extract_training_data/score_train_data.ipynb
     - create the dataset by first scoring FP (0) and okey events (1)
     - the second time score the true negatives (0) and the nice events (1)
-- retrain model and get data (kaggle) 
+- retrain model and get data (kaggle)
    -  https://www.kaggle.com/code/verjiniam/miniml-transfer-learning
 - get data to compare the models (server)
     - compare_models/compare_detection_script.py 'create' 13 2
