@@ -308,7 +308,7 @@ class MiniTrace():
     @classmethod
     def from_axon_file_MP(cls, filepath: str, channel: int=0, scaling: float=1.0, unit: str='', sweeps_delete: list = [],
     first_point = 0, last_point = 0) -> MiniTrace:
-        ''' Loads data from an AXON .abf file.
+        ''' Loads data from an AXON .abf file. - for my multipatch setup
 
         Parameters
         ----------
@@ -377,7 +377,7 @@ class MiniTrace():
 
         data_unit = unit if unit is not None else abf_file.adcUnits[channel]
 
-        return cls(data=data_long, sampling_interval=1/abf_file.sampleRate, 
+        return cls(data=data_long, sampling_interval=1/abf_file.sampleRate,
                     y_unit=data_unit, filename=os.path.split(filepath)[-1][:-4] + '_ch' + str(channel))
 
 
@@ -602,8 +602,9 @@ class EventDetection():
         Contains event statistics
     '''
     def __init__(self, data: MiniTrace, window_size: int=600, event_direction: str='negative', training_direction: str='negative', verbose=1,
-                 batch_size: int=128, model_path: str='', model_threshold: float=0.5, compile_model=True, callbacks: list=[]) -> None:
+                 batch_size: int=128, model_path: str='', model_threshold: float=0.5, compile_model=True, callbacks: list=[], convolve_win: int=20) -> None:
         self.trace = data
+        self.convolve_win = convolve_win
         self.prediction = None
         self.window_size = window_size
         self.event_direction = event_direction
@@ -643,13 +644,11 @@ class EventDetection():
             value = -1 if 'int' in str(dtype) else np.NaN
             setattr(self, str(label), np.full(int(shape), value, dtype=dtype))
 
-
     def events_present(self) -> bool:
         ''' Checks if events are present '''
         num_events = self.events.shape[0]
         
         return num_events != 0
-
 
     def load_model(self, filepath: str, threshold: float=0.5, compile=True) -> None:
         ''' Loads trained miniML model from hdf5 file '''
@@ -659,7 +658,7 @@ class EventDetection():
             print(f'Model loaded from {filepath}')
 
     def hann_filter(self, data, filter_size):
-        win = signal.windows.hann(filter_size)    
+        win = signal.windows.hann(filter_size)
         return signal.convolve(data, win, mode='same') / sum(win)
 
     def _linear_interpolation(self, data:np.ndarray, interpol_to_len:int):
@@ -862,14 +861,17 @@ class EventDetection():
             raise ValueError('Cannot extract time windows exceeding input data size.')
 
         if filter:
-            mini_trace = self.hann_filter(data=self.trace.data, filter_size=self.convolve_win)
+            if not hasattr(self, 'convolve_win'):
+                mini_trace = self.hann_filter(data=self.trace.data, filter_size = 20)
+            else:
+                mini_trace = self.hann_filter(data=self.trace.data, filter_size=self.convolve_win)
         else:
             mini_trace = self.trace.data
 
-        mini_trace *= self.event_direction   
+        mini_trace *= self.event_direction
 
         self._init_arrays(['event_peak_locations', 'event_start', 'min_positions_rise', 'max_positions_rise'], positions.shape[0], dtype=np.int64)
-        self._init_arrays(['event_peak_values', 'event_bsls', 'decaytimes', 'charges', 'risetimes', 'half_decay'], positions.shape[0], dtype=np.float64)               
+        self._init_arrays(['event_peak_values', 'event_bsls', 'decaytimes', 'charges', 'risetimes', 'half_decay'], positions.shape[0], dtype=np.float64)          
 
         for ix, position in enumerate(positions):
             indices = position + np.arange(-add_points, after)
@@ -1352,7 +1354,6 @@ class EventDetection():
         print(f'events saved to {filename}')
 
 
-
 class EventAnalysis(EventDetection):
     '''miniML class for analysis of events detected by an alternative method. Convenient for method comparison.
     Parameters
@@ -1372,18 +1373,49 @@ class EventAnalysis(EventDetection):
     '''
     def __init__(self, trace, window_size, event_direction, verbose, event_positions, convolve_win, resampling_factor):
         super().__init__(data=trace, window_size=window_size, event_direction=event_direction, verbose=verbose, convolve_win=convolve_win)
+        self.trace = trace
         self.add_points = int(self.window_size/3)
         self.resampling_factor = resampling_factor
         self.event_locations = event_positions[np.logical_and(
                                                 self.add_points < event_positions, 
                                                 event_positions < len(self.trace.data) - (self.window_size + self.add_points))]
         self.event_locations = self.event_locations.astype(np.int64)
-        self.events = self.trace._extract_event_data(self.event_locations, before=self.add_points, 
-                                                     after=self.window_size + self.add_points)
+        self.events = self._extract_event_data(trace = self.trace, positions = self.event_locations, 
+                                               before = self.add_points, after = self.window_size + self.add_points)
+
+        # self.events = self._extract_event_data(self.trace, self.event_locations, before = 10, 
+        #                                          after = self.window_size)
+    
+    def _extract_event_data(self, trace, positions: np.ndarray, before: int, after: int) -> np.ndarray:
+        '''
+        Extracts events from trace
+
+        Parameters
+        ------
+        positions: np.ndarray
+            The event positions.
+        before: int
+            Number of samples before event position for event extraction. Positions-before must be positive.
+        after: int
+            Number of samples after event positions for event extraction. Positions+after must smaller 
+            than total number of samples in self.data.
+        returns: np.ndarray
+            2d array with events of shape (len(positions), before+after).
+        
+        Raises
+        ------
+        ValueError
+            When the indices are too close to self.data boundaries
+        '''
+        if np.any(positions - before < 0) or np.any(positions + after >= self.trace.shape[0]):
+            raise ValueError('Cannot extract time windows exceeding input data size.')
+
+        indices = positions + np.arange(-before, after)[:, None, None]
+
+        return np.squeeze(self.data[indices].T, axis=1)
 
     def eval_events(self, filter: bool=True) -> None:
         if self.event_locations.shape[0] > 0:
             super()._get_event_properties(filter=filter)
             self.events = self.events - self.event_bsls[:, None]
             super()._eval_events()
-
